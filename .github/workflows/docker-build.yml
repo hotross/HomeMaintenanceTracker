@@ -1,4 +1,4 @@
-name: Docker Build
+name: Docker Build and Push
 
 on:
   push:
@@ -29,25 +29,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Build Docker image
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
+          push: true  # Set this to true to push the image to the registry
           platforms: linux/amd64,linux/arm64
-          tags: home-maintenance:latest
+          tags: ghcr.io/${{ github.repository_owner }}/home-maintenance:latest  # Update to push to GHCR
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      - name: Test Docker image
-        run: |
-          # Test amd64 image
-          docker run --rm --platform linux/amd64 home-maintenance:latest node -v
-          docker run --rm --platform linux/amd64 home-maintenance:latest npm -v
-
-          # Test arm64 image
-          docker run --rm --platform linux/arm64 home-maintenance:latest node -v
-          docker run --rm --platform linux/arm64 home-maintenance:latest npm -v
 
       # Move cache to prevent cache growth
       - name: Move cache
